@@ -39,7 +39,7 @@ struct M68kRegisters {
 };
 
 // General functions
-extern bool InitAll(const char *vmdir);
+extern bool InitAll(const char *vmdir, void *fb, size_t fbsize);
 extern void ExitAll(void);
 
 // Platform-specific functions

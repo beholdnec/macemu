@@ -104,6 +104,10 @@ extern void * vm_acquire(size_t size, int options = VM_MAP_DEFAULT);
 
 extern int vm_acquire_fixed(void * addr, size_t size, int options = VM_MAP_DEFAULT);
 
+extern void * vm_reserve(size_t size);
+
+extern void * vm_commit(void * addr, size_t size, int options, int prot, size_t offset);
+
 /* Deallocate any mapping for the region starting at ADDR and extending
    LEN bytes. Returns 0 if successful, -1 on errors.  */
 
@@ -129,6 +133,6 @@ extern int vm_reset_write_watch(void * addr, size_t size);
 
 /* Returns the size of a page.  */
 
-extern int vm_get_page_size(void);
+extern size_t vm_get_page_size(void);
 
 #endif /* VM_ALLOC_H */

@@ -111,6 +111,7 @@ include_directories(. ${SDL_INCLUDE_DIR})
 target_link_libraries(BasiliskII ${SDL_LIBRARY_DIR}/SDL.lib ${SDL_LIBRARY_DIR}/SDLmain.lib iphlpapi.lib ws2_32.lib)
 
 add_definitions(
+    -DARENA_ADDRESSING
     -DDIRECT_ADDRESSING
     -DUNALIGNED_PROFITABLE
     -DFPU_IEEE

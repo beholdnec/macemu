@@ -261,7 +261,7 @@ extern int16 VideoDriverStatus(uint32 pb, uint32 dce);
 
 
 // System specific and internal functions/data
-extern bool VideoInit(bool classic);
+extern bool VideoInit(bool classic, void *fb, size_t fbsize);
 extern void VideoExit(void);
 
 extern void VideoQuitFullScreen(void);

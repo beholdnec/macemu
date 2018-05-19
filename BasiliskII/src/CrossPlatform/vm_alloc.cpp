@@ -340,6 +340,60 @@ int vm_acquire_fixed(void * addr, size_t size, int options)
 	return 0;
 }
 
+/* Reserve a region of virtual address space. */
+void * vm_reserve(size_t size)
+{
+    void * addr = NULL;
+#if defined(HAVE_WIN32_VM)
+    if ((addr = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS)) == NULL)
+    {
+        LPSTR buf = NULL;
+        if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 0, (LPSTR)&buf, 0, NULL))
+        {
+            printf("VirtualAlloc failed: %s\n", buf);
+            LocalFree(buf);
+        }
+        return VM_MAP_FAILED;
+    }
+#else
+    // TODO: Implement for other systems.
+    return VM_MAP_FAILED;
+#endif
+
+    return addr;
+}
+
+/* Allocate pages in a region of virtual address space that was reserved by
+   vm_reserve. Options MUST include VM_MAP_FIXED.  */
+void * vm_commit(void * addr, size_t size, int options, int prot, size_t offset)
+{
+    void * result = NULL;
+    uintptr_t ea = reinterpret_cast<uintptr_t>((char *)addr + offset);
+
+    if (!(options & VM_MAP_FIXED))
+        return VM_MAP_FAILED;
+
+    // Fail if effective address is not aligned to a page boundary.
+    if (ea % vm_get_page_size() != 0)
+        return VM_MAP_FAILED;
+
+#if defined(HAVE_WIN32_VM)
+    // Fail if any unsupported arguments are passed.
+    if ((options & ~(VM_MAP_FIXED)) != 0)
+        return VM_MAP_FAILED;
+    if ((prot & ~(VM_PAGE_READ | VM_PAGE_WRITE | VM_PAGE_EXECUTE)) != 0)
+        return VM_MAP_FAILED;
+
+    if ((result = VirtualAlloc((char *)addr + offset, size, MEM_COMMIT, translate_prot_flags(prot))) == NULL)
+        return VM_MAP_FAILED;
+#else
+    // TODO: Implement for other systems.
+    return VM_MAP_FAILED;
+#endif
+
+    return result;
+}
+
 /* Deallocate any mapping for the region starting at ADDR and extending
    LEN bytes. Returns 0 if successful, -1 on errors.  */
 
@@ -439,7 +493,7 @@ int vm_reset_write_watch(void * addr, size_t size)
 
 /* Returns the size of a page.  */
 
-int vm_get_page_size(void)
+size_t vm_get_page_size(void)
 {
 #ifdef HAVE_WIN32_VM
 	static vm_uintptr_t page_size = 0;

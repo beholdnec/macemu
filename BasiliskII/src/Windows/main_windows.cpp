@@ -133,6 +133,19 @@ char *strdup(const char *s)
 
 }
 
+#ifdef _M_X64
+#if !ARENA_ADDRESSING
+#error ARENA_ADDRESSING must be defined when building for 64-bit Windows
+#endif
+#endif
+
+#if ARENA_ADDRESSING
+#if SIZEOF_VOID_P <= 4
+#error ARENA_ADDRESSING is not supported in 32-bit builds
+#endif
+
+static void *arena = NULL;
+#endif
 
 /*
  *  Map memory that can be accessed from the Mac side
@@ -140,7 +153,12 @@ char *strdup(const char *s)
 
 void *vm_acquire_mac(size_t size)
 {
+#if ARENA_ADDRESSING
+    assert(arena != NULL);
+    return vm_commit(arena, size, VM_MAP_FIXED, VM_PAGE_READ | VM_PAGE_WRITE, 0);
+#else
 	return vm_acquire(size, VM_MAP_DEFAULT | VM_MAP_32BIT);
+#endif
 }
 
 
@@ -343,6 +361,10 @@ int main(int argc, char **argv)
 	// Initialize VM system
 	vm_init();
 
+#if ARENA_ADDRESSING
+    arena = vm_reserve(0x100000000);
+#endif
+
 	// Create areas for Mac RAM and ROM
 	uint8 *ram_rom_area = (uint8 *)vm_acquire_mac(RAMSize + 0x100000);
 	if (ram_rom_area == VM_MAP_FAILED) {
@@ -354,7 +376,12 @@ int main(int argc, char **argv)
 
 #if USE_SCRATCHMEM_SUBTERFUGE
 	// Allocate scratch memory
+#if ARENA_ADDRESSING
+    // Place scratch memory above RAM and ROM, leaving a gap in between.
+    ScratchMem = (uint8 *)vm_commit(arena, SCRATCH_MEM_SIZE, VM_MAP_FIXED, VM_PAGE_DEFAULT, RAMSize + 0x100000 + 0x100000);
+#else
 	ScratchMem = (uint8 *)vm_acquire(SCRATCH_MEM_SIZE);
+#endif
 	if (ScratchMem == VM_MAP_FAILED) {
 		ErrorAlert(STR_NO_MEM_ERR);
 		QuitEmulator();
@@ -402,8 +429,16 @@ int main(int argc, char **argv)
 	// Initialize native timers
 	timer_init();
 
+    const size_t FB_SIZE = 8 * 1024 * 1024; // ???
+#if ARENA_ADDRESSING
+    // Place framebuffer above ROM, RAM and scratch, leaving a gap in between.
+    void *fb = vm_commit(arena, FB_SIZE, VM_MAP_FIXED, VM_PAGE_DEFAULT, RAMSize + 0x100000 + 0x100000 + 0x200000);
+#else
+    void *fb = vm_acquire(XXX /* TODO */);
+#endif
+
 	// Initialize everything
-	if (!InitAll(NULL))
+	if (!InitAll(NULL, fb, FB_SIZE))
 		QuitEmulator();
 	D(bug("Initialization complete\n"));
 

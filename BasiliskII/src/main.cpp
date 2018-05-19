@@ -61,7 +61,7 @@ static void mon_write_byte_b2(uintptr adr, uint32 b)
  *  Initialize everything, returns false on error
  */
 
-bool InitAll(const char *vmdir)
+bool InitAll(const char *vmdir, void *fb, size_t fbsize)
 {
 	// Check ROM version
 	if (!CheckROM()) {
@@ -170,7 +170,7 @@ bool InitAll(const char *vmdir)
 	AudioInit();
 
 	// Init video
-	if (!VideoInit(ROMVersion == ROM_VERSION_64K || ROMVersion == ROM_VERSION_PLUS || ROMVersion == ROM_VERSION_CLASSIC))
+	if (!VideoInit(ROMVersion == ROM_VERSION_64K || ROMVersion == ROM_VERSION_PLUS || ROMVersion == ROM_VERSION_CLASSIC, fb, fbsize))
 		return false;
 
 	// Set default video mode in XPRAM

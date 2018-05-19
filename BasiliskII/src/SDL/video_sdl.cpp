@@ -195,6 +195,7 @@ extern void SysMountFirstFloppy(void);
  *  Framebuffer allocation routines
  */
 
+#if 0
 static void *vm_acquire_framebuffer(uint32 size)
 {
 	// always try to reallocate framebuffer at the same address
@@ -216,6 +217,7 @@ static inline void vm_release_framebuffer(void *fb, uint32 size)
 {
 	vm_release(fb, size);
 }
+#endif
 
 static inline int get_customized_color_depth(int default_depth)
 {
@@ -353,14 +355,18 @@ static void ErrorAlert(int error)
 
 class SDL_monitor_desc : public monitor_desc {
 public:
-	SDL_monitor_desc(const vector<VIDEO_MODE> &available_modes, video_depth default_depth, uint32 default_id) : monitor_desc(available_modes, default_depth, default_id) {}
+	SDL_monitor_desc(const vector<VIDEO_MODE> &available_modes, video_depth default_depth, uint32 default_id, void *fb, size_t fbsize) : monitor_desc(available_modes, default_depth, default_id), _fb(fb), _fbsize(fbsize) {}
 	~SDL_monitor_desc() {}
 
-	virtual void switch_to_current_mode(void);
+	virtual void switch_to_current_mode();
 	virtual void set_palette(uint8 *pal, int num);
 
-	bool video_open(void);
+	bool video_open();
 	void video_close(void);
+
+private:
+    void *_fb;
+    size_t _fbsize;
 };
 
 
@@ -594,7 +600,7 @@ public:
 	driver_base(SDL_monitor_desc &m);
 	~driver_base();
 
-	void init(); // One-time init
+	void init(void *fb, size_t fbsize); // One-time init
 	void set_video_mode(int flags);
 	void adapt_to_video_mode();
 
@@ -647,7 +653,7 @@ void driver_base::set_video_mode(int flags)
 #endif
 }
 
-void driver_base::init()
+void driver_base::init(void *fb, size_t fbsize)
 {
 	set_video_mode(display_type == DISPLAY_SCREEN ? SDL_FULLSCREEN : 0);
 	int aligned_height = (VIDEO_MODE_Y + 15) & ~15;
@@ -680,7 +686,8 @@ void driver_base::init()
 		// Allocate memory for frame buffer
 		the_buffer_size = (aligned_height + 2) * s->pitch;
 		the_buffer_copy = (uint8 *)calloc(1, the_buffer_size);
-		the_buffer = (uint8 *)vm_acquire_framebuffer(the_buffer_size);
+		//the_buffer = (uint8 *)vm_acquire_framebuffer(the_buffer_size);
+        the_buffer = (uint8 *)fb;
 		D(bug("the_buffer = %p, the_buffer_copy = %p\n", the_buffer, the_buffer_copy));
 	}
 
@@ -742,7 +749,7 @@ driver_base::~driver_base()
 	// the_buffer shall always be mapped through vm_acquire_framebuffer()
 	if (the_buffer != VM_MAP_FAILED) {
 		D(bug(" releasing the_buffer at %p (%d bytes)\n", the_buffer, the_buffer_size));
-		vm_release_framebuffer(the_buffer, the_buffer_size);
+		//vm_release_framebuffer(the_buffer, the_buffer_size);
 		the_buffer = NULL;
 	}
 
@@ -905,7 +912,7 @@ static void keycode_init(void)
 }
 
 // Open display for current mode
-bool SDL_monitor_desc::video_open(void)
+bool SDL_monitor_desc::video_open()
 {
 	D(bug("video_open()\n"));
 #if DEBUG
@@ -918,7 +925,7 @@ bool SDL_monitor_desc::video_open(void)
 	drv = new(std::nothrow) driver_base(*this);
 	if (drv == NULL)
 		return false;
-	drv->init();
+	drv->init(_fb, _fbsize);
 	if (!drv->init_ok) {
 		delete drv;
 		drv = NULL;
@@ -957,7 +964,7 @@ bool VideoInit(void)
 {
 	const bool classic = false;
 #else
-bool VideoInit(bool classic)
+bool VideoInit(bool classic, void *fb, size_t fbsize)
 {
 #endif
 	classic_mode = classic;
@@ -1140,7 +1147,7 @@ bool VideoInit(bool classic)
 	D(bug("Return get_customized_color_depth %d\n", color_depth));
 
 	// Create SDL_monitor_desc for this (the only) display
-	SDL_monitor_desc *monitor = new SDL_monitor_desc(VideoModes, (video_depth)color_depth, default_id);
+	SDL_monitor_desc *monitor = new SDL_monitor_desc(VideoModes, (video_depth)color_depth, default_id, fb, fbsize);
 	VideoMonitors.push_back(monitor);
 
 	// Open display
@@ -1430,7 +1437,7 @@ int16 video_mode_change(VidLocals *csSave, uint32 ParamPtr)
 }
 #endif
 
-void SDL_monitor_desc::switch_to_current_mode(void)
+void SDL_monitor_desc::switch_to_current_mode()
 {
 	// Close and reopen display
 	LOCK_EVENTS;
