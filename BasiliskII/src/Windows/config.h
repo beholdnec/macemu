@@ -209,7 +209,11 @@
 #define SIZEOF_SHORT 2
 
 /* The size of `void *', as computed by sizeof. */
+#ifdef _M_X64
+#define SIZEOF_VOID_P 8
+#else
 #define SIZEOF_VOID_P 4
+#endif
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1

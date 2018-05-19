@@ -104,6 +104,17 @@ static int xpram_func(void *arg);
 static int tick_func(void *arg);
 static void one_tick(...);
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1900)
+/*
+ *  Work around issue where SDLmain fails to link in Visual Studio 2015 and up.
+ *  See: <https://stackoverflow.com/questions/30412951/unresolved-external-symbol-imp-fprintf-and-imp-iob-func-sdl2>.
+ */
+static FILE iob[] = {*stdin, *stdout, *stderr};
+extern "C" FILE* __cdecl __iob_func()
+{
+    return iob;
+}
+#endif
 
 /*
  *  Ersatz functions

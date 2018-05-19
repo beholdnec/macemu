@@ -123,6 +123,7 @@ const uintptr MEMBaseDiff = 0;
 extern uintptr MEMBaseDiff;
 #endif
 
+extern uint32 RAMSize;
 #if REAL_ADDRESSING || DIRECT_ADDRESSING
 static __inline__ uae_u8 *do_get_real_address(uaecptr addr)
 {
@@ -204,4 +205,3 @@ extern uae_u32 get_virtual_address(uae_u8 *addr);
 #endif /* DIRECT_ADDRESSING || REAL_ADDRESSING */
 
 #endif /* MEMORY_H */
-
