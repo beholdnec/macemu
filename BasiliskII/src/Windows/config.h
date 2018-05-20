@@ -6,7 +6,7 @@
 
 /* Define if using video enabled on SEGV signals. */
 #ifndef _DEBUG
-#define ENABLE_VOSF 1
+//#define ENABLE_VOSF 1
 #endif
 
 /* Define to 1 if you have the `acoshl' function. */

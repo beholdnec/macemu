@@ -2216,7 +2216,7 @@ void VideoRefresh(void)
 	do_video_refresh();
 }
 
-const int VIDEO_REFRESH_HZ = 60;
+const int VIDEO_REFRESH_HZ = 200;
 const int VIDEO_REFRESH_DELAY = 1000000 / VIDEO_REFRESH_HZ;
 
 #ifndef USE_CPU_EMUL_SERVICES
